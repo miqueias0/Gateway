@@ -28,10 +28,12 @@ public class GatewayConfig {
     public WebFilter corsFilter() {
         return (ServerWebExchange ctx, WebFilterChain chain) -> {
             if (CorsUtils.isCorsRequest(ctx.getRequest())) {
-                ctx.getResponse().getHeaders().add("Access-Control-Allow-Origin", "*");
-                ctx.getResponse().getHeaders().add("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
-                ctx.getResponse().getHeaders().add("Access-Control-Max-Age", "3600");
-                ctx.getResponse().getHeaders().add("Access-Control-Allow-Headers", "authorization, content-type");
+                if(ctx.getRequest().getMethod() == HttpMethod.OPTIONS) {
+                    ctx.getResponse().getHeaders().add("Access-Control-Allow-Origin", "*");
+                    ctx.getResponse().getHeaders().add("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
+                    ctx.getResponse().getHeaders().add("Access-Control-Max-Age", "3600");
+                    ctx.getResponse().getHeaders().add("Access-Control-Allow-Headers", "authorization, content-type");
+                }
                 if (ctx.getRequest().getMethod() == HttpMethod.OPTIONS) {
                     ctx.getResponse().setStatusCode(HttpStatus.OK);
                     return Mono.empty();
@@ -43,10 +45,10 @@ public class GatewayConfig {
 
     // Você pode adicionar outros filtros aqui, se necessário
 
-    @Bean
-    public HiddenHttpMethodFilter hiddenHttpMethodFilter() {
-        return new HiddenHttpMethodFilter();
-    }
+//    @Bean
+//    public HiddenHttpMethodFilter hiddenHttpMethodFilter() {
+//        return new HiddenHttpMethodFilter();
+//    }
 
 //    @Bean
 //    public GlobalFilter customGlobalFilter1() {

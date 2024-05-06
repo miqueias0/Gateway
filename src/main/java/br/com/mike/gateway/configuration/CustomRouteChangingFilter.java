@@ -8,13 +8,11 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.cors.reactive.CorsUtils;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.http.HttpHeaders;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
@@ -30,8 +28,11 @@ public class CustomRouteChangingFilter extends AbstractGatewayFilterFactory<Cust
     private Map<String, ApiPorta> portas = new HashMap<>();
     private RedisService repository;
 
+    private Config config;
+
     @Override
     public GatewayFilter apply(Config config) {
+        this.config = config;
         repository = config.repository;
         return (exchange, chain) -> {
             // Lógica para determinar a nova rota
@@ -44,6 +45,7 @@ public class CustomRouteChangingFilter extends AbstractGatewayFilterFactory<Cust
                     salvarDadosPorta(porta);
                     portas.remove(exchange.getRequest().getId());
                 }
+                exchange.getAttributes().remove(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
 //                System.out.println("Redirecionamento concluído." + exchange.getRequest().getId());
             }));
         };
@@ -75,7 +77,7 @@ public class CustomRouteChangingFilter extends AbstractGatewayFilterFactory<Cust
         List<String> endpoints = Arrays.stream(exchange.getRequest()
                         .getPath().value().split("/"))
                 .filter(x -> !x.isBlank() && !x.contains("api")).toList();
-        List<ApiPorta> portas = repository.findAllByEndpoint(endpoints.get(0));
+        List<ApiPorta> portas = repository.filtrarLista(repository.findAll(), endpoints.get(0));
         if(portas == null || portas.isEmpty()){
             RestTemplate restTemplate = new RestTemplate();
             portas = new ArrayList<>(Arrays.asList(restTemplate.exchange(
@@ -114,10 +116,25 @@ public class CustomRouteChangingFilter extends AbstractGatewayFilterFactory<Cust
 
     public static class Config {
         public RedisService repository;
+        public List<ApiPorta> apiPortas;
 
         @Autowired
         public Config(RedisService repository) {
             this.repository = repository;
+            obterTodos();
         }
+
+        private void obterTodos(){
+            new Thread((Runnable) () -> {
+                while (true){
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                    }
+                    apiPortas = repository.findAll();
+                }
+            }).start();
+        }
+
     }
 }

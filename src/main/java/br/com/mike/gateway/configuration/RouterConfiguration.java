@@ -17,10 +17,13 @@ public class RouterConfiguration {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-                .route("desvio_rota", r -> r.path("/api/**")
+                .route("desvio_rota_docker", r -> r.path("/api/docker/*")
 //                        .customize(a -> a.predicate(customRoutePredicateFactory.apply(new CustomRoutePredicateFactory.Config())))
-                        .filters(f -> f.filter(new CustomRouteChangingFilter().apply(new CustomRouteChangingFilter.Config(config))))
+//                        .filters(f -> f.filter(new CustomRouteChangingFilter().apply(new CustomRouteChangingFilter.Config(config))))
                         .uri("http://localhost:8080"))
+                .route("desvio_rota", r -> r.path("/api/**")
+                        .filters(f -> f.filter(new CustomRouteChangingFilter().apply(new CustomRouteChangingFilter.Config(config))))
+                        .uri("http://localhost:8081"))
                 .build();
     }
 

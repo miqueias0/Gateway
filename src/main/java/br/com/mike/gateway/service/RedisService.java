@@ -29,9 +29,38 @@ public class RedisService {
         return repository.findById(id).orElse(null);
     }
 
+    public List<ApiPorta> findAll() {
+        RestTemplate restTemplate = new RestTemplate();
+        try {
+            return requisicao(restTemplate, null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public List<ApiPorta> findAllByEndpoint(String endpoint) {
         List<ApiPorta> portas = repository.findAll();
 
+        portas.removeIf(x -> {
+            boolean verificarNumero = false;
+            try {
+                if (x.getEndpoint().split("_").length > 1) {
+                    Long.parseLong(x.getEndpoint().split("_")[1]);
+                }
+                verificarNumero = x.getEndpoint().split("_").length <= 2;
+            } catch (Exception ex) {
+
+            }
+            if (x.getEndpoint().split("_")[0].equalsIgnoreCase(endpoint) && verificarNumero) {
+                return false;
+            }
+            return true;
+        });
+
+        return portas;
+    }
+
+    public List<ApiPorta> filtrarLista(List<ApiPorta> portas, String endpoint){
         portas.removeIf(x -> {
             boolean verificarNumero = false;
             try {
@@ -59,7 +88,7 @@ public class RedisService {
             while (true) {
                 List<ApiPorta> portas = null;
                 try {
-                    portas = requisicao(restTemplate);
+                    portas = requisicao(restTemplate, 1000L*10);
                 } catch (Exception e) {
                 }
                 if (portas != null) {
@@ -87,10 +116,12 @@ public class RedisService {
         thread.start();
     }
 
-    private List<ApiPorta> requisicao(RestTemplate restTemplate) throws Exception {
+    private List<ApiPorta> requisicao(RestTemplate restTemplate, Long tempoEsepra) throws Exception {
         List<ApiPorta> portas = null;
         try {
-            Thread.sleep(1000);
+            if(tempoEsepra != null){
+                Thread.sleep(tempoEsepra);
+            }
             portas = restTemplate.exchange(
                     "http://localhost:8080/api/docker/obterLista",
                     HttpMethod.GET,
